@@ -1,12 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 import tkinter as tk
 from tkinter import messagebox
 import matplotlib.pyplot as plt
+
 
 class CNNCalculator:
     def __init__(self, root):
@@ -24,17 +19,23 @@ class CNNCalculator:
         self.input_channels_entry.grid(row=1, column=1)
         self.input_channels_entry.insert(0, "3")  # Default 3 channels (RGB)
 
+        # label for output layer
+        tk.Label(root, text="Neurons in fully connected output layer:").grid(row=2, column=0)
+        self.output_layer_entry = tk.Entry(root)
+        self.output_layer_entry.grid(row=2, column=1)
+        self.output_layer_entry.insert(0, "10")  # Default 10 output nodes
+
         # Frame for dynamically adding/removing layers
         self.layer_frame = tk.Frame(root)
-        self.layer_frame.grid(row=2, columnspan=2)
+        self.layer_frame.grid(row=3, columnspan=2)
 
         self.layers = []
         self.add_layer()
 
         # Buttons
-        tk.Button(root, text="Add Layer", command=self.add_layer).grid(row=3, column=0)
-        tk.Button(root, text="Remove Layer", command=self.remove_layer).grid(row=3, column=1)
-        tk.Button(root, text="Calculate", command=self.calculate).grid(row=3, column=2)
+        tk.Button(root, text="Add Layer", command=self.add_layer).grid(row=4, column=1)
+        tk.Button(root, text="Remove Layer", command=self.remove_layer).grid(row=4, column=2)
+        tk.Button(root, text="Calculate", command=self.calculate).grid(row=4, column=0)
 
     def add_layer(self):
         """Add a new convolutional layer input row."""
@@ -58,7 +59,7 @@ class CNNCalculator:
         tk.Label(self.layer_frame, text="Padding").grid(row=layer_index, column=6)
         padding_entry = tk.Entry(self.layer_frame)
         padding_entry.grid(row=layer_index, column=7)
-        padding_entry.insert(0, "0")  # Default padding
+        padding_entry.insert(0, "0")  # Default padding 0
 
         self.layers.append((kernel_entry, filters_entry, stride_entry, padding_entry))
 
@@ -78,6 +79,7 @@ class CNNCalculator:
         try:
             input_size = int(self.input_size_entry.get())
             input_channels = int(self.input_channels_entry.get())
+            output_layer_size = int(self.output_layer_entry.get())
 
             neurons_per_layer = []
             weights_per_layer = []
@@ -92,9 +94,9 @@ class CNNCalculator:
                 # Calculate output size
                 output_size = ((input_size - kernel_size + 2 * padding) // stride) + 1
                 if output_size <= 0:
-                    messagebox.showerror("Error", f"Invalid dimensions at Layer {i+1}")
+                    messagebox.showerror("Error", f"Invalid dimensions at Layer {i + 1}")
                     return
-                
+
                 # Calculate neurons and weights (including bias)
                 num_neurons = output_size * output_size * num_filters
                 total_weights = ((kernel_size ** 2) * input_channels * num_filters) + num_filters  # Bias added
@@ -102,14 +104,26 @@ class CNNCalculator:
                 # Store results
                 neurons_per_layer.append(num_neurons)
                 weights_per_layer.append(total_weights)
-                layer_names.append(f"Layer {i+1}")
+                layer_names.append(f"Layer {i + 1}")
 
                 # Update input size and channels for the next layer
                 input_size = output_size
                 input_channels = num_filters
 
+            # final output layer weights
+            fully_connected_output_layer_weights = neurons_per_layer[-1] * output_layer_size + output_layer_size
+
+            # calculate all weights in whole network
+            combined_weights = fully_connected_output_layer_weights
+            for weight in weights_per_layer:
+                combined_weights += weight
+
+
             # Display results
-            messagebox.showinfo("Results", f"Neurons per layer: {neurons_per_layer}\nTotal Weights per layer (including biases): {weights_per_layer}")
+            messagebox.showinfo("Results",
+                                f"Neurons per convolutional layer: {neurons_per_layer}\nWeights per convolutional layer (including biases): {weights_per_layer}"
+                                f"\nWeights in fully connected output layer: {fully_connected_output_layer_weights}"
+                                f"\nTotal combined weights in whole network: {combined_weights}")
 
             # Plot results
             self.plot_results(layer_names, neurons_per_layer, weights_per_layer)
@@ -140,4 +154,3 @@ class CNNCalculator:
 root = tk.Tk()
 app = CNNCalculator(root)
 root.mainloop()
-
